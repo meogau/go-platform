@@ -1,4 +1,4 @@
-module go-platform
+module github.com/meogau/go-platform
 
 go 1.22.0
 

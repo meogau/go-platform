@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"go-platform/worker"
+	"github.com/meogau/go-platform/worker"
 	"os/signal"
 	"syscall"
 )
