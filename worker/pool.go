@@ -3,23 +3,24 @@ package worker
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
 type Pool struct {
 	capacity       int
-	messageChannel chan string
+	messageChannel chan interface{}
 	wg             sync.WaitGroup
+	processFunc    func(message interface{}) error
 }
 
-func NewWorkerPool(capacity int, messageQueueSize int) *Pool {
+func NewWorkerPool(capacity int, messageQueueSize int, processFunc func(message interface{}) error) *Pool {
 	return &Pool{
 		capacity:       capacity,
-		messageChannel: make(chan string, messageQueueSize),
+		messageChannel: make(chan interface{}, messageQueueSize),
+		processFunc:    processFunc,
 	}
 }
 
-func (pool *Pool) PushMessage(message string) {
+func (pool *Pool) PushMessage(message interface{}) {
 	pool.messageChannel <- message
 }
 
@@ -30,18 +31,21 @@ func (pool *Pool) Run() {
 	}
 }
 
-func (pool *Pool) handleMessage(id int, channel <-chan string) {
+func (pool *Pool) handleMessage(id int, channel <-chan interface{}) {
 	defer pool.wg.Done()
 	for message := range channel {
 		fmt.Printf("worker %v is processing message %v\n", id, message)
-		time.Sleep(time.Second * 10)
+		err := pool.processFunc(message)
+		if err != nil {
+			fmt.Printf("worker %v failed to process message %v with error: %v\n", id, message, err)
+		}
 	}
 }
 
 // Shutdown implement graceful shutdown
 func (pool *Pool) Shutdown() {
-	fmt.Printf("Closing worker pool\n")
+	fmt.Printf("Closing worker pool... \n")
 	close(pool.messageChannel)
 	pool.wg.Wait()
-	fmt.Printf("Closed worker pool\n")
+	fmt.Printf("Closed worker pool!\n")
 }
